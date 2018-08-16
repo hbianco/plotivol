@@ -81,7 +81,6 @@ compDelta <- function(option_type, future, strike, vol,time_to_exp){
 #' @param style (optional, default='strike') Allows the user to choose between strike, moneyness and delta as plot's x-axis.
 #' @return The computed implied volatilities of a set of options. The ivol curves are also plotted by expiry.
 #' if an error is encountered during computation, the implied volatility is set to zero and the point is excluded from the plot.
-#' @import ggplot2
 #' @examples
 #'df <- data.frame(strike = c(50, 20), # the option strike - in $
 #'                 type = c("C", "P"), # either “c” for call option or “p” for a put option
@@ -94,12 +93,13 @@ compDelta <- function(option_type, future, strike, vol,time_to_exp){
 #'Get only implied volatility back:
 #'plotImpliedVol(df, plotting=FALSE)
 #'
-#'Plot Calls only, by delta:
+#'Plot calls only, by delta:
 #'plotImpliedVol(df, type='call', style='delta')
 #'
 #'Plot puts on by strike:
 #'plotImpliedVol(df, type='put')
 #'
+#' @import ggplot2
 #' @export plotImpliedVol
 #'
 plotImpliedVol <- function(df, plotting, type, style) {
@@ -152,7 +152,9 @@ plotImpliedVol <- function(df, plotting, type, style) {
   # input error checking
   # replace any non numerical values in numerical columns by NAs
   df[c(1,3:5)] = sapply(df[c(1,3:5)],function(x) as.numeric(as.character(x))) # force non numeric data
-  #in numeric columns to NAs
+                                                                              #in numeric columns to NAs
+  # replace type by upper case
+  df[2] = lapply(df[2], function(x) toupper(as.character(x)))
 
   # check missing values within the data.frame
   if (sum(is.na.data.frame(df))!=0){
@@ -164,7 +166,7 @@ plotImpliedVol <- function(df, plotting, type, style) {
 
   # compute implied vol
   res <- rep(0, nrow(df))
-  excl <- vector() # exclude potential errors
+  excl <- vector(mode='numeric', length=0) # exclude potential errors
   for (i in seq(length=nrow(df))) {
     res[i] <- tryCatch(
       # try
@@ -174,7 +176,7 @@ plotImpliedVol <- function(df, plotting, type, style) {
                                                                  df$strike[i],
                                                                  x,
                                                                  df$time_to_expiry[i])
-        }, lower=1e-6, upper=5.0)$root
+        }, lower=1e-6, upper=10.0)$root
       },
       #catch
       error=function(x){
@@ -192,9 +194,9 @@ plotImpliedVol <- function(df, plotting, type, style) {
   if (plotting){
     # series to plot
     if (type=='call'){
-      df <- df[toupper(df$type)=='C',]
+      df <- df[df$type=='C',]
     } else if (type=='put') {
-      df <- df[toupper(df$type)=='P',]
+      df <- df[df$type=='P',]
     }
 
     # handle plot style
@@ -208,9 +210,10 @@ plotImpliedVol <- function(df, plotting, type, style) {
                               df$time_to_expiry)
       # case need calls and puts with delta display, reference delta to call, i.e. positive values.
       # in practice, there should be only calls with delta below 50% and only puts with delta above 50%.
-      if (tolower(type)=='both'){df[toupper(df$type)=='P',style] <- 1.0 + df[toupper(df$type)=='P',style]}
+      if (tolower(type)=='both'){df[df$type=='P',style] <- 1.0 + df[df$type=='P',style]}
     }
 
+    if (length(excl)==0) excl <- nrow(df) + 1
     # plot implied volatilty curve by expiries.
     ivol_plot <- ggplot(df[-excl,], aes(x=get(style),
                                         y=ivol,

@@ -7,8 +7,7 @@ Maintainer: The package maintainer <h.biancottof@hotmail.fr>
 Description: The package computes and plots implied volatilities of a set of European options on future contracts.
   The input is a data.frame object. It returns the computed implied volatilities and plots the results.
 Depends:
-  R (>= 3.4.3)
-Imports:
+  R (>= 3.4.3),
   ggplot2
 License: NA
 Encoding: UTF-8
